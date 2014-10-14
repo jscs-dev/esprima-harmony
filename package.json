@@ -1,5 +1,5 @@
 {
-    "name": "esprima-harmony",
+    "name": "esprima-harmony-jscs",
     "description": "ECMAScript parsing infrastructure for multipurpose analysis",
     "homepage": "http://esprima.org",
     "main": "esprima.js",

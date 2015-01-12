@@ -28,6 +28,8 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+var testFixtureOptions = {};
+
 var testFixture = {
 
     'Primary Expression': {
@@ -5214,6 +5216,126 @@ var testFixture = {
 
     'Regular Expression Literals': {
 
+        '/p/;': {
+            type: 'Program',
+            body: [{
+                type: 'ExpressionStatement',
+                expression: {
+                    type: 'Literal',
+                    value: '/p/',
+                    raw: '/p/',
+                    regex: {
+                        pattern: 'p',
+                        flags: ''
+                    },
+                    range: [0, 3],
+                    loc: {
+                        start: { line: 1, column: 0 },
+                        end: { line: 1, column: 3 }
+                    }
+                },
+                range: [0, 4],
+                loc: {
+                    start: { line: 1, column: 0 },
+                    end: { line: 1, column: 4 }
+                }
+            }],
+            range: [0, 4],
+            loc: {
+                start: { line: 1, column: 0 },
+                end: { line: 1, column: 4 }
+            },
+            tokens: [{
+                type: 'RegularExpression',
+                value: '/p/',
+                regex: {
+                    pattern: 'p',
+                    flags: ''
+                },
+                range: [0, 3],
+                loc: {
+                    start: { line: 1, column: 0 },
+                    end: { line: 1, column: 3 }
+                }
+            }, {
+                type: 'Punctuator',
+                value: ';',
+                range: [3, 4],
+                loc: {
+                    start: { line: 1, column: 3 },
+                    end: { line: 1, column: 4 }
+                }
+            }]
+        },
+
+        '[/q/]': {
+            type: 'Program',
+            body: [{
+                type: 'ExpressionStatement',
+                expression: {
+                    type: 'ArrayExpression',
+                    elements: [{
+                        type: 'Literal',
+                        value: '/q/',
+                        raw: '/q/',
+                        regex: {
+                            pattern: 'q',
+                            flags: ''
+                        },
+                        range: [1, 4],
+                        loc: {
+                            start: { line: 1, column: 1 },
+                            end: { line: 1, column: 4 }
+                        }
+                    }],
+                    range: [0, 5],
+                    loc: {
+                        start: { line: 1, column: 0 },
+                        end: { line: 1, column: 5 }
+                    }
+                },
+                range: [0, 5],
+                loc: {
+                    start: { line: 1, column: 0 },
+                    end: { line: 1, column: 5 }
+                }
+            }],
+            range: [0, 5],
+            loc: {
+                start: { line: 1, column: 0 },
+                end: { line: 1, column: 5 }
+            },
+            tokens: [{
+                type: 'Punctuator',
+                value: '[',
+                range: [0, 1],
+                loc: {
+                    start: { line: 1, column: 0 },
+                    end: { line: 1, column: 1 }
+                }
+            }, {
+                type: 'RegularExpression',
+                value: '/q/',
+                regex: {
+                    pattern: 'q',
+                    flags: ''
+                },
+                range: [1, 4],
+                loc: {
+                    start: { line: 1, column: 1 },
+                    end: { line: 1, column: 4 }
+                }
+            }, {
+                type: 'Punctuator',
+                value: ']',
+                range: [4, 5],
+                loc: {
+                    start: { line: 1, column: 4 },
+                    end: { line: 1, column: 5 }
+                }
+            }]
+        },
+
         'var x = /[a-z]/i': {
             type: 'Program',
             body: [{
@@ -5470,6 +5592,99 @@ var testFixture = {
                     end: { line: 1, column: 16 }
                 }
             }]
+        },
+
+        'var x = /[\\u{0000000000000061}-\\u{7A}]/u': {
+            type: 'Program',
+            body: [{
+                type: 'VariableDeclaration',
+                declarations: [{
+                    type: 'VariableDeclarator',
+                    id: {
+                        type: 'Identifier',
+                        name: 'x',
+                        range: [4, 5],
+                        loc: {
+                            start: { line: 1, column: 4 },
+                            end: { line: 1, column: 5 }
+                        }
+                    },
+                    init: {
+                        type: 'Literal',
+                        value: null,
+                        raw: '/[\\u{0000000000000061}-\\u{7A}]/u',
+                        regex: {
+                            pattern: '[\\u{0000000000000061}-\\u{7A}]',
+                            flags: 'u'
+                        },
+                        range: [8, 40],
+                        loc: {
+                            start: { line: 1, column: 8 },
+                            end: { line: 1, column: 40 }
+                        }
+                    },
+                    range: [4, 40],
+                    loc: {
+                        start: { line: 1, column: 4 },
+                        end: { line: 1, column: 40 }
+                    }
+                }],
+                kind: 'var',
+                range: [0, 40],
+                loc: {
+                    start: { line: 1, column: 0 },
+                    end: { line: 1, column: 40 }
+                }
+            }],
+            range: [0, 40],
+            loc: {
+                start: { line: 1, column: 0 },
+                end: { line: 1, column: 40 }
+            },
+            tokens: [{
+                type: 'Keyword',
+                value: 'var',
+                range: [0, 3],
+                loc: {
+                    start: { line: 1, column: 0 },
+                    end: { line: 1, column: 3 }
+                }
+            }, {
+                type: 'Identifier',
+                value: 'x',
+                range: [4, 5],
+                loc: {
+                    start: { line: 1, column: 4 },
+                    end: { line: 1, column: 5 }
+                }
+            }, {
+                type: 'Punctuator',
+                value: '=',
+                range: [6, 7],
+                loc: {
+                    start: { line: 1, column: 6 },
+                    end: { line: 1, column: 7 }
+                }
+            }, {
+                type: 'RegularExpression',
+                value: '/[\\u{0000000000000061}-\\u{7A}]/u',
+                regex: {
+                    pattern: '[\\u{0000000000000061}-\\u{7A}]',
+                    flags: 'u'
+                },
+                range: [8, 40],
+                loc: {
+                    start: { line: 1, column: 8 },
+                    end: { line: 1, column: 40 }
+                }
+            }]
+        },
+
+        'var x = /\\u{110000}/u': {
+            index: 21,
+            lineNumber: 1,
+            column: 22,
+            message: 'Error: Line 1: Invalid regular expression'
         },
 
         'var x = /[x-z]/i': {
@@ -18625,24 +18840,6 @@ var testFixture = {
                 }
             },
             {
-                "type": "Punctuator",
-                "value": ")",
-                "range": [
-                    13,
-                    14
-                ],
-                "loc": {
-                    "start": {
-                        "line": 1,
-                        "column": 13
-                    },
-                    "end": {
-                        "line": 1,
-                        "column": 14
-                    }
-                }
-            },
-            {
                 "type": "RegularExpression",
                 "value": "/42/",
                 "regex": {
@@ -18772,24 +18969,6 @@ var testFixture = {
                     "end": {
                         "line": 1,
                         "column": 12
-                    }
-                }
-            },
-            {
-                "type": "Punctuator",
-                "value": "}",
-                "range": [
-                    18,
-                    19
-                ],
-                "loc": {
-                    "start": {
-                        "line": 1,
-                        "column": 18
-                    },
-                    "end": {
-                        "line": 1,
-                        "column": 19
                     }
                 }
             },
@@ -19819,8 +19998,82 @@ var testFixture = {
             lineNumber: 1,
             column: 8,
             message: 'Error: Line 1: Invalid regular expression: missing /'
-        }
+        },
 
+        'this / 100;': [
+          {
+            "type": "Keyword",
+            "value": "this",
+            "range": [
+              0,
+              4
+            ],
+            "loc": {
+              "start": {
+                "line": 1,
+                "column": 0
+              },
+              "end": {
+                "line": 1,
+                "column": 4
+              }
+            }
+          },
+          {
+            "type": "Punctuator",
+            "value": "/",
+            "range": [
+              5,
+              6
+            ],
+            "loc": {
+              "start": {
+                "line": 1,
+                "column": 5
+              },
+              "end": {
+                "line": 1,
+                "column": 6
+              }
+            }
+          },
+          {
+            "type": "Numeric",
+            "value": "100",
+            "range": [
+              7,
+              10
+            ],
+            "loc": {
+              "start": {
+                "line": 1,
+                "column": 7
+              },
+              "end": {
+                "line": 1,
+                "column": 10
+              }
+            }
+          },
+          {
+            "type": "Punctuator",
+            "value": ";",
+            "range": [
+              10,
+              11
+            ],
+            "loc": {
+              "start": {
+                "line": 1,
+                "column": 10
+              },
+              "end": {
+                "line": 1,
+                "column": 11
+              }
+            }
+          }
+        ]
     },
 
     'API': {

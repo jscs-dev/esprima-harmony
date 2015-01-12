@@ -7,7 +7,7 @@
         "esparse": "./bin/esparse.js",
         "esvalidate": "./bin/esvalidate.js"
     },
-    "version": "1.1.0-dev-harmony",
+    "version": "1.1.0-regex-token-fix",
     "files": [
         "bin",
         "test/run.js",

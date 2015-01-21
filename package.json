@@ -31,10 +31,7 @@
     }],
     "repository": {
         "type": "git",
-        "url": "http://github.com/ariya/esprima.git"
-    },
-    "bugs": {
-        "url": "http://issues.esprima.org"
+        "url": "http://github.com/jscs-dev/esprima-harmony.git"
     },
     "licenses": [{
         "type": "BSD",

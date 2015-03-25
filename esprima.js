@@ -90,6 +90,7 @@
     TokenName[Token.Punctuator] = 'Punctuator';
     TokenName[Token.StringLiteral] = 'String';
     TokenName[Token.RegularExpression] = 'RegularExpression';
+    TokenName[Token.Template] = 'Template';
 
     // A function following one of those tokens is an expression.
     FnExprTokens = ['(', '{', '[', 'in', 'typeof', 'instanceof', 'new',
@@ -142,7 +143,6 @@
         LogicalExpression: 'LogicalExpression',
         MemberExpression: 'MemberExpression',
         MethodDefinition: 'MethodDefinition',
-        ModuleSpecifier: 'ModuleSpecifier',
         NewExpression: 'NewExpression',
         ObjectExpression: 'ObjectExpression',
         ObjectPattern: 'ObjectPattern',
@@ -230,7 +230,7 @@
         InvalidModuleSpecifier: 'Invalid module specifier',
         IllegalImportDeclaration: 'Illegal import declaration',
         IllegalExportDeclaration: 'Illegal export declaration',
-        NoUnintializedConst: 'Const must be initialized',
+        NoUninitializedConst: 'Const must be initialized',
         ComprehensionRequiresBlock: 'Comprehension must have at least one block',
         ComprehensionError: 'Comprehension Error',
         EachNotAllowed: 'Each is not supported'
@@ -723,21 +723,43 @@
         case 41:   // ) close bracket
         case 59:   // ; semicolon
         case 44:   // , comma
-        case 123:  // { open curly brace
-        case 125:  // } close curly brace
         case 91:   // [
         case 93:   // ]
         case 58:   // :
         case 63:   // ?
         case 126:  // ~
             ++index;
-            if (extra.tokenize) {
-                if (code === 40) {
-                    extra.openParenToken = extra.tokens.length;
-                } else if (code === 123) {
-                    extra.openCurlyToken = extra.tokens.length;
+            if (extra.tokenize && code === 40) {
+                extra.openParenToken = extra.tokens.length;
+            }
+
+            return {
+                type: Token.Punctuator,
+                value: String.fromCharCode(code),
+                lineNumber: lineNumber,
+                lineStart: lineStart,
+                range: [start, index]
+            };
+
+        case 123:  // { open curly brace
+        case 125:  // } close curly brace
+            ++index;
+            if (extra.tokenize && code === 123) {
+                extra.openCurlyToken = extra.tokens.length;
+            }
+
+            // lookahead2 function can cause tokens to be scanned twice and in doing so
+            // would wreck the curly stack by pushing the same token onto the stack twice.
+            // curlyLastIndex ensures each token is pushed or popped exactly once
+            if (index > state.curlyLastIndex) {
+                state.curlyLastIndex = index;
+                if (code === 123) {
+                    state.curlyStack.push('{');
+                } else {
+                    state.curlyStack.pop();
                 }
             }
+
             return {
                 type: Token.Punctuator,
                 value: String.fromCharCode(code),
@@ -1203,11 +1225,12 @@
     }
 
     function scanTemplate() {
-        var cooked = '', ch, start, terminated, tail, restore, unescaped, code, octal;
+        var cooked = '', ch, start, terminated, head, tail, restore, unescaped, code, octal;
 
         terminated = false;
         tail = false;
         start = index;
+        head = (source[index] === '`');
 
         ++index;
 
@@ -1314,37 +1337,30 @@
             throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
         }
 
+        if (index > state.curlyLastIndex) {
+            state.curlyLastIndex = index;
+            if (!tail) {
+                state.curlyStack.push('template');
+            }
+
+            if (!head) {
+                state.curlyStack.pop();
+            }
+        }
+
         return {
             type: Token.Template,
             value: {
                 cooked: cooked,
                 raw: source.slice(start + 1, index - ((tail) ? 1 : 2))
             },
+            head: head,
             tail: tail,
             octal: octal,
             lineNumber: lineNumber,
             lineStart: lineStart,
             range: [start, index]
         };
-    }
-
-    function scanTemplateElement(option) {
-        var startsWith, template;
-
-        lookahead = null;
-        skipComment();
-
-        startsWith = (option.head) ? '`' : '}';
-
-        if (source[index] !== startsWith) {
-            throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
-        }
-
-        template = scanTemplate();
-
-        peek();
-
-        return template;
     }
 
     function testRegExp(pattern, flags) {
@@ -1608,7 +1624,9 @@
             return scanStringLiteral();
         }
 
-        if (ch === 96) {
+        // Template literals start with backtick (#96) for template head
+        // or close curly (#125) for template middle or template tail.
+        if (ch === 96 || (ch === 125 && state.curlyStack[state.curlyStack.length - 1] === 'template')) {
             return scanTemplate();
         }
         if (isIdentifierStart(ch)) {
@@ -2210,14 +2228,6 @@
             };
         },
 
-        createModuleSpecifier: function (token) {
-            return {
-                type: Syntax.ModuleSpecifier,
-                value: token.value,
-                raw: source.slice(token.range[0], token.range[1])
-            };
-        },
-
         createExportSpecifier: function (id, name) {
             return {
                 type: Syntax.ExportSpecifier,
@@ -2763,8 +2773,15 @@
     }
 
     function parseTemplateElement(option) {
-        var marker = markerCreate(),
-            token = scanTemplateElement(option);
+        var marker, token;
+
+        if (lookahead.type !== Token.Template || (option.head && !lookahead.head)) {
+            throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
+        }
+
+        marker = markerCreate();
+        token = lex();
+
         if (strict && token.octal) {
             throwError(token, Messages.StrictOctalLiteral);
         }
@@ -2966,7 +2983,7 @@
 
         expr = matchKeyword('new') ? parseNewExpression() : parsePrimaryExpression();
 
-        while (match('.') || match('[') || match('(') || lookahead.type === Token.Template) {
+        while (match('.') || match('[') || match('(') || (lookahead.type === Token.Template && lookahead.head)) {
             if (match('(')) {
                 args = parseArguments();
                 expr = markerApply(marker, delegate.createCallExpression(expr, args));
@@ -2987,7 +3004,7 @@
 
         expr = matchKeyword('new') ? parseNewExpression() : parsePrimaryExpression();
 
-        while (match('.') || match('[') || lookahead.type === Token.Template) {
+        while (match('.') || match('[') || (lookahead.type === Token.Template && lookahead.head)) {
             if (match('[')) {
                 expr = markerApply(marker, delegate.createMemberExpression('[', expr, parseComputedMember()));
             } else if (match('.')) {
@@ -3576,7 +3593,7 @@
 
         if (kind === 'const') {
             if (!match('=')) {
-                throwError({}, Messages.NoUnintializedConst);
+                throwError({}, Messages.NoUninitializedConst);
             }
             expect('=');
             init = parseAssignmentExpression();
@@ -3639,8 +3656,7 @@
         if (lookahead.type !== Token.StringLiteral) {
             throwError({}, Messages.InvalidModuleSpecifier);
         }
-        specifier = delegate.createModuleSpecifier(lookahead);
-        lex();
+        specifier = delegate.createLiteral(lex());
         return markerApply(marker, specifier);
     }
 
@@ -3651,7 +3667,7 @@
     }
 
     function parseExportSpecifier() {
-        var id, name = null, marker = markerCreate(), from;
+        var id, name = null, marker = markerCreate();
         if (matchKeyword('default')) {
             lex();
             id = markerApply(marker, delegate.createIdentifier('default'));
@@ -3668,17 +3684,11 @@
     }
 
     function parseExportDeclaration() {
-        var backtrackToken, id, declaration = null,
+        var declaration = null,
+            possibleIdentifierToken, sourceElement,
             isExportFromIdentifier,
             src = null, specifiers = [],
             marker = markerCreate();
-
-        function rewind(token) {
-            index = token.range[0];
-            lineNumber = token.lineNumber;
-            lineStart = token.lineStart;
-            lookahead = token;
-        }
 
         expectKeyword('export');
 
@@ -3687,20 +3697,17 @@
             // export default ...
             lex();
             if (matchKeyword('function') || matchKeyword('class')) {
-                backtrackToken = lookahead;
-                lex();
-                if (isIdentifierName(lookahead)) {
+                possibleIdentifierToken = lookahead2();
+                if (isIdentifierName(possibleIdentifierToken)) {
                     // covers:
                     // export default function foo () {}
                     // export default class foo {}
-                    id = parseNonComputedProperty();
-                    rewind(backtrackToken);
-                    return markerApply(marker, delegate.createExportDeclaration(true, parseSourceElement(), [id], null));
+                    sourceElement = parseSourceElement();
+                    return markerApply(marker, delegate.createExportDeclaration(true, sourceElement, [sourceElement.id], null));
                 }
                 // covers:
                 // export default function () {}
                 // export default class {}
-                rewind(backtrackToken);
                 switch (lookahead.value) {
                 case 'class':
                     return markerApply(marker, delegate.createExportDeclaration(true, parseClassExpression(), [], null));
@@ -5185,7 +5192,9 @@
             inFunctionBody: false,
             inIteration: false,
             inSwitch: false,
-            lastCommentStart: -1
+            lastCommentStart: -1,
+            curlyStack: [],
+            curlyLastIndex: 0
         };
 
         extra = {};
@@ -5277,7 +5286,10 @@
             inIteration: false,
             inSwitch: false,
             lastCommentStart: -1,
-            yieldAllowed: false
+            yieldAllowed: false,
+            curlyPosition: 0,
+            curlyStack: [],
+            curlyLastIndex: 0
         };
 
         extra = {};

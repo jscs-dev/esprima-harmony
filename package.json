@@ -3,13 +3,8 @@
   "description": "ECMAScript parsing infrastructure for multipurpose analysis",
   "homepage": "http://esprima.org",
   "main": "esprima.js",
-  "bin": {
-    "esparse": "./bin/esparse.js",
-    "esvalidate": "./bin/esvalidate.js"
-  },
   "version": "1.1.0-templates",
   "files": [
-    "bin",
     "test/run.js",
     "test/runner.js",
     "test/test.js",
